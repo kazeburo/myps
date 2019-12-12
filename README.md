@@ -1,6 +1,6 @@
 # myps
 
-like pgrep and pkill, myps able to use grep MySQL processlist and kill threads.
+Like pgrep and pkill, grep MySQL processlist and kill threads.
 
 ## Example
 
