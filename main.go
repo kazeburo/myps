@@ -291,10 +291,7 @@ func main() {
 	opts := mainOpts{}
 	psr := flags.NewParser(&opts, flags.Default)
 	_, err := psr.Parse()
-	if err != nil {
-		os.Exit(1)
-	}
-	if notFound {
+	if err != nil || notFound {
 		os.Exit(1)
 	}
 }
