@@ -218,6 +218,9 @@ func makeLTSVln(pi processInfo, idLabel string) string {
 var notFound = false
 
 func (opts *grepOpts) Execute(args []string) error {
+	if opts.Info == nil && len(args) > 0 {
+		opts.Info = &args[0]
+	}
 	err := checkCriteria(opts.filterSetting, "grep")
 	if err != nil {
 		return err
@@ -247,6 +250,9 @@ func (opts *grepOpts) Execute(args []string) error {
 	return nil
 }
 func (opts *killOpts) Execute(args []string) error {
+	if opts.Info == nil && len(args) > 0 {
+		opts.Info = &args[0]
+	}
 	err := checkCriteria(opts.filterSetting, "kill")
 	if err != nil {
 		return err
