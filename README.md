@@ -53,24 +53,24 @@ Usage:
   myps [OPTIONS] grep [grep-OPTIONS]
 
 Help Options:
-  -h, --help                Show this help message
+  -h, --help                     Show this help message
 
 [grep command options]
-          --mysql-host=     Hostname
-          --mysql-port=     Port
-          --mysql-user=     Username
-          --mysql-password= Password
-          --mysql-socket=   path to mysql listen sock
-          --mysql-timeout=  Timeout to connect mysql (default: 30s)
-          --defaults-file=  path to defaults-file. load $HOME/.my.cnf if exists
-      -t, --time=           display/kill process only >= time
-      -u, --user=           display/kill process of user name
-      -d, --db=             display/kill process of db name. % wildcard allowed
-      -c, --command=        display/kill process of command. % wildcard allowed
-      -s, --state=          display/kill process of state. % wildcard allowed
-      -i, --info=           display/kill process of info(query). % wildcard allowed
-      -D, --debug           Display debug
-      -f, --full            Display query all (like show full processlist)
+          --mysql-host=          Hostname
+          --mysql-port=          Port
+          --mysql-user=          Username
+          --mysql-password=      Password
+          --mysql-socket=        path to mysql listen sock
+          --mysql-timeout=       Timeout to connect mysql (default: 30s)
+          --defaults-extra-file= path to defaults-extra-file
+      -t, --time=                display/kill process only >= time
+      -u, --user=                display/kill process of user name
+      -d, --db=                  display/kill process of db name. % wildcard allowed
+      -c, --command=             display/kill process of command. % wildcard allowed
+      -s, --state=               display/kill process of state. % wildcard allowed
+      -i, --info=                display/kill process of info(query). % wildcard allowed
+      -D, --debug                Display debug
+      -f, --full                 Display query all (like show full processlist)
 ```
 
 ### kill
@@ -80,28 +80,30 @@ Usage:
   myps [OPTIONS] kill [kill-OPTIONS]
 
 Help Options:
-  -h, --help                Show this help message
+  -h, --help                     Show this help message
 
 [kill command options]
-          --mysql-host=     Hostname
-          --mysql-port=     Port
-          --mysql-user=     Username
-          --mysql-password= Password
-          --mysql-socket=   path to mysql listen sock
-          --mysql-timeout=  Timeout to connect mysql (default: 30s)
-          --defaults-file=  path to defaults-file. load $HOME/.my.cnf if exists
-      -t, --time=           display/kill process only >= time
-      -u, --user=           display/kill process of user name
-      -d, --db=             display/kill process of db name. % wildcard allowed
-      -c, --command=        display/kill process of command. % wildcard allowed
-      -s, --state=          display/kill process of state. % wildcard allowed
-      -i, --info=           display/kill process of info(query). % wildcard allowed
-      -D, --debug           Display debug
-      -f, --full            Display query all (like show full processlist)
+          --mysql-host=          Hostname
+          --mysql-port=          Port
+          --mysql-user=          Username
+          --mysql-password=      Password
+          --mysql-socket=        path to mysql listen sock
+          --mysql-timeout=       Timeout to connect mysql (default: 30s)
+          --defaults-extra-file= path to defaults-extra-file
+      -t, --time=                display/kill process only >= time
+      -u, --user=                display/kill process of user name
+      -d, --db=                  display/kill process of db name. % wildcard allowed
+      -c, --command=             display/kill process of command. % wildcard allowed
+      -s, --state=               display/kill process of state. % wildcard allowed
+      -i, --info=                display/kill process of info(query). % wildcard allowed
+      -D, --debug                Display debug
+      -f, --full                 Display query all (like show full processlist)
 ```
 
 
 ## LIMITATION
+
+IF `my_print_defaults` is installed, `myps` load `my.cnf` and `.my.cnf` for connect DB.
 
 `myps` access to `INFORMATION_SCHEMA.PROCESSLIST` table.
 Grant access to query INFORMATION_SCHEMA.PROCESSLIST and KILL if you needed.

@@ -14,18 +14,18 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jessevdk/go-flags"
 	"github.com/mgutz/ansi"
-	"github.com/sjmudd/mysql_defaults_file"
-	go_ini "github.com/vaughan0/go-ini"
+	"github.com/percona/go-mysql/dsn"
+	"github.com/vaughan0/go-ini"
 )
 
 type commonSetting struct {
-	MySQLHost         string        `long:"mysql-host" description:"Hostname"`
-	MySQLPort         string        `long:"mysql-port" description:"Port"`
-	MySQLUser         string        `long:"mysql-user" description:"Username"`
-	MySQLPass         *string       `long:"mysql-password" description:"Password"`
-	MySQLSocket       string        `long:"mysql-socket" description:"path to mysql listen sock"`
-	MySQLTimeout      time.Duration `long:"mysql-timeout" default:"30s" description:"Timeout to connect mysql"`
-	MySQLDefaultsFile string        `long:"defaults-file" description:"path to defaults-file. load $HOME/.my.cnf if exists"`
+	MySQLHost              string        `long:"mysql-host" description:"Hostname"`
+	MySQLPort              string        `long:"mysql-port" description:"Port"`
+	MySQLUser              string        `long:"mysql-user" description:"Username"`
+	MySQLPass              *string       `long:"mysql-password" description:"Password"`
+	MySQLSocket            string        `long:"mysql-socket" description:"path to mysql listen sock"`
+	MySQLTimeout           time.Duration `long:"mysql-timeout" default:"30s" description:"Timeout to connect mysql"`
+	MySQLDefaultsExtraFile string        `long:"defaults-extra-file" description:"path to defaults-extra-file"`
 }
 
 type filterSetting struct {
@@ -71,61 +71,61 @@ type mainOpts struct {
 }
 
 func openDB(opts commonSetting, debug bool) (*sql.DB, error) {
-	settings := make(map[string]string)
-	if opts.MySQLDefaultsFile == "" {
-		path := os.Getenv("HOME") + "/.my.cnf"
-		_, err := os.Stat(path)
-		if err == nil {
-			opts.MySQLDefaultsFile = path
-		}
+	dsn, err := dsn.Defaults("")
+	if err != nil {
+		return nil, err
 	}
-	if opts.MySQLDefaultsFile != "" {
-		i, err := go_ini.LoadFile(opts.MySQLDefaultsFile)
+
+	if opts.MySQLDefaultsExtraFile != "" {
+		i, err := ini.LoadFile(opts.MySQLDefaultsExtraFile)
 		if err != nil {
 			return nil, err
 		}
 		section := i.Section("client")
 		user, ok := section["user"]
 		if ok {
-			settings["user"] = user
+			dsn.Username = user
 		}
 		password, ok := section["password"]
 		if ok {
-			settings["password"] = password
+			dsn.Password = password
 		}
 		socket, ok := section["socket"]
 		if ok {
-			settings["socket"] = socket
+			dsn.Socket = socket
 		}
 		host, ok := section["host"]
 		if ok {
-			settings["host"] = host
+			dsn.Hostname = host
 		}
 		port, ok := section["port"]
 		if ok {
-			settings["port"] = port
+			dsn.Port = port
 		}
 	}
 	if opts.MySQLHost != "" {
-		settings["host"] = opts.MySQLHost
+		dsn.Hostname = opts.MySQLHost
 	}
 	if opts.MySQLPort != "" {
-		settings["port"] = opts.MySQLPort
+		dsn.Port = opts.MySQLPort
 	}
 	if opts.MySQLUser != "" {
-		settings["user"] = opts.MySQLUser
+		dsn.Username = opts.MySQLUser
 	}
 	if opts.MySQLPass != nil {
-		settings["password"] = *opts.MySQLPass
+		dsn.Password = *opts.MySQLPass
 	}
 	if opts.MySQLSocket != "" {
-		settings["socket"] = opts.MySQLSocket
+		dsn.Socket = opts.MySQLSocket
 	}
-	dsn := mysql_defaults_file.BuildDSN(settings, "")
+
+	dsn.Params = append(dsn.Params, "interpolateParams=true")
+	dsn.Params = append(dsn.Params, fmt.Sprintf("timeout=%s", opts.MySQLTimeout.String()))
+	dsnString := dsn.String()
 	if debug {
 		log.Printf("DSN: %s", dsn)
 	}
-	db, err := sql.Open("mysql", fmt.Sprintf("%s?interpolateParams=true&timeout=%s", dsn, opts.MySQLTimeout.String()))
+	db, err := sql.Open("mysql", dsnString)
 	if err != nil {
 		return nil, err
 	}
@@ -296,6 +296,9 @@ func (opts *killOpts) Execute(args []string) error {
 		return nil
 	}
 	for _, pi := range pl {
+		if opts.Debug {
+			log.Printf("Query: KILL %d", pi.ID)
+		}
 		_, err := conn.ExecContext(context.Background(), "KILL ?", pi.ID)
 		if err != nil {
 			if mysqlErr, ok := err.(*mysql.MySQLError); ok {
