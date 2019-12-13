@@ -2,6 +2,8 @@
 
 Like pgrep and pkill, grep MySQL processlist and kill threads.
 
+![terminal](https://raw.githubusercontent.com/kazeburo/myps/master/readme/myps.jpg)
+
 ## Example
 
 grep by TIME
