@@ -34,7 +34,7 @@ By default, myps use `$HOME/.my.cnf` if exists.
 ## Usage
 
 ```
-$ ./myps -h grep
+$ ./myps -h
 Usage:
   myps [OPTIONS] <grep | kill>
 
@@ -49,7 +49,6 @@ Available commands:
 ### grep
 
 ```
-% ./myps grep -h
 Usage:
   myps [OPTIONS] grep [grep-OPTIONS]
 
@@ -62,20 +61,21 @@ Help Options:
           --mysql-user=     Username
           --mysql-password= Password
           --mysql-socket=   path to mysql listen sock
-          --defaults-file=  path to defaults-file
-          --timeout=        Timeout to connect mysql (default: 5s)
-          --duration=       display/kill process only time >= duration
-          --user=           display/kill process of user name
-          --db=             display/kill process of db name. % wildcard allowed
-          --command=        display/kill process of command. % wildcard allowed
-          --state=          display/kill process of state. % wildcard allowed
-          --info=           display/kill process of info(query). % wildcard allowed
+          --mysql-timeout=  Timeout to connect mysql (default: 30s)
+          --defaults-file=  path to defaults-file. load $HOME/.my.cnf if exists
+      -t, --time=           display/kill process only >= time
+      -u, --user=           display/kill process of user name
+      -d, --db=             display/kill process of db name. % wildcard allowed
+      -c, --command=        display/kill process of command. % wildcard allowed
+      -s, --state=          display/kill process of state. % wildcard allowed
+      -i, --info=           display/kill process of info(query). % wildcard allowed
+      -D, --debug           Display debug
+      -f, --full            Display query all (like show full processlist)
 ```
 
 ### kill
 
 ```
-% ./myps kill -h
 Usage:
   myps [OPTIONS] kill [kill-OPTIONS]
 
@@ -88,12 +88,20 @@ Help Options:
           --mysql-user=     Username
           --mysql-password= Password
           --mysql-socket=   path to mysql listen sock
-          --defaults-file=  path to defaults-file
-          --timeout=        Timeout to connect mysql (default: 5s)
-          --duration=       display/kill process only time >= duration
-          --user=           display/kill process of user name
-          --db=             display/kill process of db name. % wildcard allowed
-          --command=        display/kill process of command. % wildcard allowed
-          --state=          display/kill process of state. % wildcard allowed
-          --info=           display/kill process of info(query). % wildcard allowed
+          --mysql-timeout=  Timeout to connect mysql (default: 30s)
+          --defaults-file=  path to defaults-file. load $HOME/.my.cnf if exists
+      -t, --time=           display/kill process only >= time
+      -u, --user=           display/kill process of user name
+      -d, --db=             display/kill process of db name. % wildcard allowed
+      -c, --command=        display/kill process of command. % wildcard allowed
+      -s, --state=          display/kill process of state. % wildcard allowed
+      -i, --info=           display/kill process of info(query). % wildcard allowed
+      -D, --debug           Display debug
+      -f, --full            Display query all (like show full processlist)
 ```
+
+
+## LIMITATION
+
+`myps` access to `INFORMATION_SCHEMA.PROCESSLIST` table.
+Grant access to query INFORMATION_SCHEMA.PROCESSLIST and KILL if you needed.
