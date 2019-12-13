@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -25,6 +26,7 @@ type commonSetting struct {
 	MySQLSocket       string        `long:"mysql-socket" description:"path to mysql listen sock"`
 	MySQLDefaultsFile string        `long:"defaults-file" description:"path to defaults-file"`
 	MySQLTimeout      time.Duration `long:"timeout" default:"5s" description:"Timeout to connect mysql"`
+	Debug             bool          `group:"filter" long:"debug" description:"Display debug"`
 }
 
 type filterSetting struct {
@@ -114,6 +116,9 @@ func openDB(opts commonSetting) (*sql.DB, error) {
 		settings["socket"] = opts.MySQLSocket
 	}
 	dsn := mysql_defaults_file.BuildDSN(settings, "")
+	if opts.Debug {
+		log.Printf("DSN: %s", dsn)
+	}
 	db, err := sql.Open("mysql", dsn+"?interpolateParams=true")
 	if err != nil {
 		return nil, err
@@ -122,7 +127,10 @@ func openDB(opts commonSetting) (*sql.DB, error) {
 	return db, nil
 }
 
-func checkCriteria(opts filterSetting, command string) error {
+func checkCriteria(opts *filterSetting, args []string, command string) error {
+	if opts.Info == nil && len(args) > 0 {
+		opts.Info = &args[0]
+	}
 	if opts.Duration == nil &&
 		opts.User == nil &&
 		opts.DB == nil &&
@@ -134,7 +142,7 @@ func checkCriteria(opts filterSetting, command string) error {
 	return nil
 }
 
-func processList(conn *sql.Conn, opts filterSetting) ([]processInfo, error) {
+func processList(conn *sql.Conn, opts filterSetting, debug bool) ([]processInfo, error) {
 	args := []interface{}{}
 	where := []string{}
 	processList := []processInfo{}
@@ -167,6 +175,10 @@ func processList(conn *sql.Conn, opts filterSetting) ([]processInfo, error) {
 
 	query := `SELECT /* SHOW PROCESSLIST */ ID, IFNULL(USER,"") USER, IFNULL(HOST,"") HOST, IFNULL(DB,"") DB, IFNULL(COMMAND,"") COMMAND, TIME, IFNULL(STATE,"") STATE, IFNULL(INFO,"") INFO FROM information_schema.PROCESSLIST WHERE ID != CONNECTION_ID() AND `
 	query = query + strings.Join(where, " AND ")
+	if debug {
+		log.Printf("Query: %s", query)
+		log.Printf("Args: %s", args)
+	}
 	rows, err := conn.QueryContext(context.Background(), query, args...)
 	if err != nil {
 		return processList, err
@@ -218,10 +230,7 @@ func makeLTSVln(pi processInfo, idLabel string) string {
 var notFound = false
 
 func (opts *grepOpts) Execute(args []string) error {
-	if opts.Info == nil && len(args) > 0 {
-		opts.Info = &args[0]
-	}
-	err := checkCriteria(opts.filterSetting, "grep")
+	err := checkCriteria(&opts.filterSetting, args, "grep")
 	if err != nil {
 		return err
 	}
@@ -235,7 +244,7 @@ func (opts *grepOpts) Execute(args []string) error {
 		return err
 	}
 	defer conn.Close()
-	pl, err := processList(conn, opts.filterSetting)
+	pl, err := processList(conn, opts.filterSetting, opts.Debug)
 	if err != nil {
 		return err
 	}
@@ -250,10 +259,7 @@ func (opts *grepOpts) Execute(args []string) error {
 	return nil
 }
 func (opts *killOpts) Execute(args []string) error {
-	if opts.Info == nil && len(args) > 0 {
-		opts.Info = &args[0]
-	}
-	err := checkCriteria(opts.filterSetting, "kill")
+	err := checkCriteria(&opts.filterSetting, args, "kill")
 	if err != nil {
 		return err
 	}
@@ -267,7 +273,7 @@ func (opts *killOpts) Execute(args []string) error {
 		return err
 	}
 	defer conn.Close()
-	pl, err := processList(conn, opts.filterSetting)
+	pl, err := processList(conn, opts.filterSetting, opts.Debug)
 	if err != nil {
 		return err
 	}
