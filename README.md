@@ -29,8 +29,6 @@ KILLED:142      USER:root       HOST:localhost:59393    DB:     COMMAND:Query   
 KILLED:145      USER:root       HOST:localhost:59800    DB:     COMMAND:Query   TIME:85 STATE:User sleep        INFO:select sleep(360)
 ```
 
-By default, myps use `$HOME/.my.cnf` if exists.
-
 ## Usage
 
 ```
@@ -103,7 +101,8 @@ Help Options:
 
 ## LIMITATION
 
-IF `my_print_defaults` is installed, `myps` load `my.cnf` and `.my.cnf` for connect DB.
+If `my_print_defaults` is installed, `myps` load `my.cnf` and `.my.cnf` to connect DB.
+If you want to use another my.cnf, you can use --defaults-extra-files option like mysql cli.
 
 `myps` access to `INFORMATION_SCHEMA.PROCESSLIST` table.
 Grant access to query INFORMATION_SCHEMA.PROCESSLIST and KILL if you needed.
