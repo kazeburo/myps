@@ -123,7 +123,8 @@ func openDB(opts commonSetting, debug bool) (*sql.DB, error) {
 	dsn.Params = append(dsn.Params, fmt.Sprintf("timeout=%s", opts.MySQLTimeout.String()))
 	dsnString := dsn.String()
 	if debug {
-		log.Printf("DSN: %s", dsn)
+		dsn.Password = "xxxx"
+		log.Printf("DSN: %s", dsn.String())
 	}
 	db, err := sql.Open("mysql", dsnString)
 	if err != nil {
