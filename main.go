@@ -24,18 +24,22 @@ type commonSetting struct {
 	MySQLUser         string        `long:"mysql-user" description:"Username"`
 	MySQLPass         *string       `long:"mysql-password" description:"Password"`
 	MySQLSocket       string        `long:"mysql-socket" description:"path to mysql listen sock"`
-	MySQLDefaultsFile string        `long:"defaults-file" description:"path to defaults-file"`
-	MySQLTimeout      time.Duration `long:"timeout" default:"5s" description:"Timeout to connect mysql"`
-	Debug             bool          `group:"filter" long:"debug" description:"Display debug"`
+	MySQLTimeout      time.Duration `long:"mysql-timeout" default:"30s" description:"Timeout to connect mysql"`
+	MySQLDefaultsFile string        `long:"defaults-file" description:"path to defaults-file. load $HOME/.my.cnf if exists"`
 }
 
 type filterSetting struct {
-	Duration *string `group:"filter" long:"duration" description:"display/kill process only time >= duration"`
-	User     *string `group:"filter" long:"user" description:"display/kill process of user name"`
-	DB       *string `group:"filter" long:"db" description:"display/kill process of db name. % wildcard allowed"`
-	Command  *string `group:"filter" long:"command" description:"display/kill process of command. % wildcard allowed"`
-	State    *string `group:"filter" long:"state" description:"display/kill process of state. % wildcard allowed"`
-	Info     *string `group:"filter" long:"info" description:"display/kill process of info(query). % wildcard allowed"`
+	Time    *string `group:"filter" short:"t" long:"time" description:"display/kill process only >= time"`
+	User    *string `group:"filter" short:"u" long:"user" description:"display/kill process of user name"`
+	DB      *string `group:"filter" short:"d" long:"db" description:"display/kill process of db name. % wildcard allowed"`
+	Command *string `group:"filter" short:"c" long:"command" description:"display/kill process of command. % wildcard allowed"`
+	State   *string `group:"filter" short:"s" long:"state" description:"display/kill process of state. % wildcard allowed"`
+	Info    *string `group:"filter" short:"i" long:"info" description:"display/kill process of info(query). % wildcard allowed"`
+}
+
+type displaySetting struct {
+	Debug bool `group:"display" short:"D" long:"debug" description:"Display debug"`
+	Full  bool `group:"display" short:"f" long:"full" description:"Display query all (like show full processlist)"`
 }
 
 type processInfo struct {
@@ -52,11 +56,13 @@ type processInfo struct {
 type grepOpts struct {
 	commonSetting
 	filterSetting
+	displaySetting
 }
 
 type killOpts struct {
 	commonSetting
 	filterSetting
+	displaySetting
 }
 
 type mainOpts struct {
@@ -64,7 +70,7 @@ type mainOpts struct {
 	KillCmd killOpts `command:"kill"`
 }
 
-func openDB(opts commonSetting) (*sql.DB, error) {
+func openDB(opts commonSetting, debug bool) (*sql.DB, error) {
 	settings := make(map[string]string)
 	if opts.MySQLDefaultsFile == "" {
 		path := os.Getenv("HOME") + "/.my.cnf"
@@ -116,10 +122,10 @@ func openDB(opts commonSetting) (*sql.DB, error) {
 		settings["socket"] = opts.MySQLSocket
 	}
 	dsn := mysql_defaults_file.BuildDSN(settings, "")
-	if opts.Debug {
+	if debug {
 		log.Printf("DSN: %s", dsn)
 	}
-	db, err := sql.Open("mysql", dsn+"?interpolateParams=true")
+	db, err := sql.Open("mysql", fmt.Sprintf("%s?interpolateParams=true&timeout=%s", dsn, opts.MySQLTimeout.String()))
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +137,7 @@ func checkCriteria(opts *filterSetting, args []string, command string) error {
 	if opts.Info == nil && len(args) > 0 {
 		opts.Info = &args[0]
 	}
-	if opts.Duration == nil &&
+	if opts.Time == nil &&
 		opts.User == nil &&
 		opts.DB == nil &&
 		opts.Command == nil &&
@@ -147,8 +153,8 @@ func processList(conn *sql.Conn, opts filterSetting, debug bool) ([]processInfo,
 	where := []string{}
 	processList := []processInfo{}
 
-	if opts.Duration != nil {
-		args = append(args, *opts.Duration)
+	if opts.Time != nil {
+		args = append(args, *opts.Time)
 		where = append(where, "TIME >= ?")
 	}
 
@@ -210,7 +216,9 @@ func makeField(label, value, labelColor string) string {
 	return label + ":" + v
 }
 
-func makeLTSVln(pi processInfo, idLabel string) string {
+var maxDefaultInfoLength = 110
+
+func makeLTSVln(pi processInfo, full bool, idLabel string) string {
 	buf := []string{}
 	if idLabel == "ID" {
 		buf = append(buf, makeField(idLabel, fmt.Sprintf("%d", pi.ID), infoLabelColor))
@@ -223,7 +231,13 @@ func makeLTSVln(pi processInfo, idLabel string) string {
 	buf = append(buf, makeField("COMMAND", pi.COMMAND, infoLabelColor))
 	buf = append(buf, makeField("TIME", fmt.Sprintf("%d", pi.TIME), infoLabelColor))
 	buf = append(buf, makeField("STATE", pi.STATE, infoLabelColor))
-	buf = append(buf, makeField("INFO", pi.INFO, infoLabelColor))
+	sub := []rune(pi.INFO)
+	if full || len(sub) < maxDefaultInfoLength {
+		buf = append(buf, makeField("INFO", pi.INFO, infoLabelColor))
+	} else {
+		buf = append(buf, makeField("INFO", string(sub[:maxDefaultInfoLength]), infoLabelColor))
+	}
+
 	return strings.Join(buf, "\t") + "\n"
 }
 
@@ -234,7 +248,7 @@ func (opts *grepOpts) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	db, err := openDB(opts.commonSetting)
+	db, err := openDB(opts.commonSetting, opts.Debug)
 	if err != nil {
 		return err
 	}
@@ -253,7 +267,7 @@ func (opts *grepOpts) Execute(args []string) error {
 		return nil
 	}
 	for _, pi := range pl {
-		os.Stdout.WriteString(makeLTSVln(pi, "ID"))
+		os.Stdout.WriteString(makeLTSVln(pi, opts.Full, "ID"))
 	}
 
 	return nil
@@ -263,7 +277,7 @@ func (opts *killOpts) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	db, err := openDB(opts.commonSetting)
+	db, err := openDB(opts.commonSetting, opts.Debug)
 	if err != nil {
 		return err
 	}
@@ -293,7 +307,7 @@ func (opts *killOpts) Execute(args []string) error {
 				return err
 			}
 		}
-		os.Stdout.WriteString(makeLTSVln(pi, "KILLED"))
+		os.Stdout.WriteString(makeLTSVln(pi, opts.Full, "KILLED"))
 	}
 
 	return nil
