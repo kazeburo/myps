@@ -119,6 +119,10 @@ func openDB(opts commonSetting, debug bool) (*sql.DB, error) {
 		dsn.Socket = opts.MySQLSocket
 	}
 
+	if dsn.Username == "" {
+		dsn.Username = os.Getenv("USER")
+	}
+
 	dsn.Params = append(dsn.Params, "interpolateParams=true")
 	dsn.Params = append(dsn.Params, fmt.Sprintf("timeout=%s", opts.MySQLTimeout.String()))
 	dsnString := dsn.String()

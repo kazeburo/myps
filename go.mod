@@ -12,5 +12,6 @@ require (
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/shirou/gopsutil v2.19.11+incompatible // indirect
 	github.com/sjmudd/mysql_defaults_file v0.0.0-20151126105016-3818fd85a5a2
+	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
 )
