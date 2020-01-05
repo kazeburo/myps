@@ -98,6 +98,7 @@ Help Options:
       -i, --info=                display/kill process of info(query). % wildcard allowed
       -D, --debug                Display debug
       -f, --full                 Display query all (like show full processlist)
+      -y, --yes                  Skip confirmation prompt to kill threads
 ```
 
 
