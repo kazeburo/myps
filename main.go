@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -63,6 +65,7 @@ type killOpts struct {
 	commonSetting
 	filterSetting
 	displaySetting
+	YesKill bool `group:"kill" short:"y" long:"yes" description:"Skip confirmation prompt to kill threads"`
 }
 
 type mainOpts struct {
@@ -277,10 +280,30 @@ func (opts *grepOpts) Execute(args []string) error {
 
 	return nil
 }
+
+var confirmReg = regexp.MustCompile("^[yY]$")
+
 func (opts *killOpts) Execute(args []string) error {
 	err := checkCriteria(&opts.filterSetting, args, "kill")
 	if err != nil {
 		return err
+	}
+	if !opts.YesKill {
+		confirmMsg := "Are you sure you want to kill threads? [y/N]:"
+		if termutil.Isatty(os.Stdout.Fd()) {
+			confirmMsg = ansi.Color(confirmMsg, "magenta")
+
+		}
+		fmt.Print(confirmMsg)
+		reader := bufio.NewReader(os.Stdin)
+		confirm, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		confirm = strings.TrimRight(confirm, "\n")
+		if !confirmReg.MatchString(confirm) {
+			return nil
+		}
 	}
 	db, err := openDB(opts.commonSetting, opts.Debug)
 	if err != nil {
@@ -297,7 +320,7 @@ func (opts *killOpts) Execute(args []string) error {
 		return err
 	}
 	if len(pl) == 0 {
-		notFound = true
+		// no set notFound = true for kill
 		return nil
 	}
 	for _, pi := range pl {
